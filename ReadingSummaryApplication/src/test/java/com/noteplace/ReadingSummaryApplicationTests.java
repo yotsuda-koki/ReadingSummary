@@ -1,13 +1,10 @@
-package com.example.demo;
+package com.noteplace.readingsummary;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class DemoApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
+class ReadingSummaryApplicationTests {
+  @Test
+  void contextLoads() {}
 }
