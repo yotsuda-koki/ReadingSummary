@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.noteplace.readingsummary.auth.security.AuthUser;
-import com.noteplace.readingsummary.book.domain.Book;
 import com.noteplace.readingsummary.book.repository.BookRepository;
 import com.noteplace.readingsummary.summary.domain.Summary;
 import com.noteplace.readingsummary.summary.dto.CreateSummaryRequest;
@@ -84,7 +83,7 @@ public class SummaryController {
   }
 
   private void ensureOwnBook(AuthUser user, Long bookId) {
-    Book b = bookRepo.findByIdAndUserId(bookId, user.id())
+    bookRepo.findByIdAndUserId(bookId, user.id())
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "book not found"));
   }
 

@@ -27,20 +27,85 @@ async function register() {
 </script>
 
 <template>
-  <main style="max-width: 520px; margin: 24px auto;">
-    <h1>Register</h1>
+  <main class="auth">
+    <section class="card auth-card">
+      <div class="auth-header">
+        <div class="logo">✨</div>
+        <div>
+          <p class="eyebrow">Create account</p>
+          <h1>はじめる準備をしましょう</h1>
+          <p class="subtle">メールアドレスとパスワードを設定してください。</p>
+        </div>
+      </div>
 
-    <div style="display: grid; gap: 8px;">
-      <input v-model="email" placeholder="email" />
-      <input v-model="password" type="password" placeholder="password" />
-      <button @click="register" :disabled="loading">
-        {{ loading ? "Registering..." : "Register" }}
-      </button>
-      <p v-if="error" style="color: red;">{{ error }}</p>
-      <p>
-        すでにアカウントをお持ちの方は
-        <RouterLink to="/login">ログイン</RouterLink>
-      </p>
-    </div>
+      <div class="form-grid">
+        <label class="field">
+          <span>Email</span>
+          <input v-model="email" placeholder="you@example.com" />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input v-model="password" type="password" placeholder="••••••••" />
+        </label>
+        <button @click="register" :disabled="loading">
+          {{ loading ? "Registering..." : "Register" }}
+        </button>
+        <p v-if="error" class="error">{{ error }}</p>
+        <p class="muted">
+          すでにアカウントをお持ちの方は
+          <RouterLink to="/login">ログイン</RouterLink>
+        </p>
+      </div>
+    </section>
   </main>
 </template>
+
+
+<style scoped>
+.auth {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px 16px 48px;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.auth-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  background: linear-gradient(135deg, #dcfce7, #e0f2fe);
+  border-radius: 16px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.error {
+  color: #dc2626;
+  font-weight: 700;
+}
+</style>

@@ -6,12 +6,14 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -71,6 +73,13 @@ public class BookController {
     Book b = repo.findByIdAndUserId(id, user.id())
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "book not found"));
 
+    if (req.title() != null) {
+        if (req.title().isBlank()) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title must not be blank");
+        }
+        b.setTitle(req.title());
+      }
+    
     if (req.status() != null) b.setStatus(req.status());
     if (req.currentPage() != null) b.setCurrentPage(req.currentPage());
     if (req.totalPages() != null) b.setTotalPages(req.totalPages());
@@ -84,6 +93,14 @@ public class BookController {
 
     repo.save(b);
     return toDetail(b);
+  }
+  
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@AuthenticationPrincipal AuthUser user, @PathVariable Long id) {
+    Book b = repo.findByIdAndUserId(id, user.id())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "book not found"));
+    repo.delete(b);
   }
 
   private BookDetailResponse toDetail(Book b) {

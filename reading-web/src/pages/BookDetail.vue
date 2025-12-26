@@ -42,6 +42,13 @@ const currentPage = ref<number>(0);
 const error = ref<string | null>(null);
 const saving = ref(false);
 
+function statusClass(value: string) {
+  if (value === "READING") return "blue";
+  if (value === "DONE") return "green";
+  if (value === "UNREAD") return "yellow";
+  return "gray";
+}
+
 // ---------- Book ----------
 async function load() {
   error.value = null;
@@ -102,8 +109,8 @@ async function addSession() {
     });
     sessionPagesRead.value = null;
     sessionMemo.value = "";
-    await load();         // currentPageが増える可能性
-    await loadSessions(); // 履歴更新
+    await load();
+    await loadSessions();
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? "セッション追加に失敗しました";
   }
@@ -115,7 +122,6 @@ const summaryScope = ref<"CHAPTER" | "BOOK">("CHAPTER");
 const summaryChapter = ref<number>(1);
 const summaryContent = ref<string>("");
 
-// Backlog6: 編集状態
 const selectedSummaryId = ref<number | null>(null);
 
 async function loadSummaries() {
@@ -197,146 +203,248 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main style="max-width: 720px; margin: 24px auto;">
-    <button @click="back">← Back</button>
+  <main class="page">
+    <button class="btn-ghost back" @click="back">← Booksに戻る</button>
 
-    <h1 style="margin-top: 12px;">Book Detail</h1>
+    <div v-if="!book" class="muted">Loading...</div>
 
-    <div v-if="!book">Loading...</div>
-
-    <div v-else style="display:grid; gap: 10px; margin-top: 12px;">
-      <div>
-        <div style="font-weight: 700;">{{ book.title }}</div>
-        <div style="opacity: .8;">
-          {{ book.author || "-" }} / {{ book.language || "-" }} / {{ book.level || "-" }}
+    <template v-else>
+      <section class="card hero">
+        <div>
+          <p class="eyebrow">Book detail</p>
+          <h1>{{ book.title }}</h1>
+          <p class="muted info">{{ book.author || "-" }} / {{ book.language || "-" }} / {{ book.level || "-" }}</p>
         </div>
-      </div>
+        <div class="badge" :class="statusClass(book.status)">{{ book.status }}</div>
+      </section>
 
-      <label>
-        Status
-        <select v-model="status">
-          <option value="UNREAD">UNREAD</option>
-          <option value="READING">READING</option>
-          <option value="DONE">DONE</option>
-        </select>
-      </label>
-
-      <label>
-        Total pages
-        <input
-          type="number"
-          :value="totalPages ?? ''"
-          @input="(e:any)=> totalPages = e.target.value === '' ? null : Number(e.target.value)"
-          min="0"
-        />
-      </label>
-
-      <label>
-        Current page
-        <input type="number" v-model.number="currentPage" min="0" />
-      </label>
-
-      <button @click="save" :disabled="saving">
-        {{ saving ? "Saving..." : "Save" }}
-      </button>
-
-      <p v-if="error" style="color: red;">{{ error }}</p>
-    </div>
-
-    <!-- Sessions -->
-    <section v-if="book" style="margin-top: 24px; border-top: 1px solid #ddd; padding-top: 16px;">
-      <h2>Reading Sessions</h2>
-
-      <div style="display:grid; gap: 8px; margin: 12px 0;">
-        <label>
-          Date
-          <input type="date" v-model="sessionDate" />
-        </label>
-
-        <label>
-          Minutes
-          <input type="number" v-model.number="sessionMinutes" min="1" />
-        </label>
-
-        <label>
-          Pages read (optional)
-          <input
-            type="number"
-            :value="sessionPagesRead ?? ''"
-            @input="(e:any)=> sessionPagesRead = e.target.value === '' ? null : Number(e.target.value)"
-            min="0"
-          />
-        </label>
-
-        <label>
-          Memo (optional)
-          <input v-model="sessionMemo" placeholder="memo" />
-        </label>
-
-        <button @click="addSession">Add Session</button>
-      </div>
-
-      <ul>
-        <li v-for="s in sessions" :key="s.id">
-          {{ s.sessionDate }} / {{ s.minutes }} min
-          <span v-if="s.pagesRead !== null"> / {{ s.pagesRead }} pages</span>
-          <span v-if="s.memo"> / {{ s.memo }}</span>
-        </li>
-      </ul>
-    </section>
-
-    <!-- Summaries -->
-    <section v-if="book" style="margin-top: 24px; border-top: 1px solid #ddd; padding-top: 16px;">
-      <h2>Summaries</h2>
-
-      <div style="display:grid; gap: 8px; margin: 12px 0;">
-        <label>
-          Scope
-          <select v-model="summaryScope">
-            <option value="CHAPTER">CHAPTER</option>
-            <option value="BOOK">BOOK</option>
-          </select>
-        </label>
-
-        <label v-if="summaryScope === 'CHAPTER'">
-          Chapter
-          <input type="number" v-model.number="summaryChapter" min="1" />
-        </label>
-
-        <label>
-          Content (Markdown)
-          <textarea v-model="summaryContent" rows="8" placeholder="Write summary in Markdown"></textarea>
-        </label>
-
-        <div style="display:flex; gap:8px;">
-          <button @click="saveSummary">Save Summary</button>
-          <button @click="clearSummaryForm" type="button">Clear</button>
+      <section class="card form-grid">
+        <div class="section-heading">現在のステータス</div>
+        <div class="grid two-col">
+          <label class="field">
+            <span>Status</span>
+            <select v-model="status">
+              <option value="UNREAD">UNREAD</option>
+              <option value="READING">READING</option>
+              <option value="DONE">DONE</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Total pages</span>
+            <input
+              type="number"
+              :value="totalPages ?? ''"
+              @input="(e:any)=> totalPages = e.target.value === '' ? null : Number(e.target.value)"
+              min="0"
+            />
+          </label>
+          <label class="field">
+            <span>Current page</span>
+            <input type="number" v-model.number="currentPage" min="0" />
+          </label>        </div>
+        <div class="action-row">
+          <button @click="save" :disabled="saving">
+            {{ saving ? "Saving..." : "Save" }}
+          </button>
+          <p v-if="error" class="error">{{ error }}</p>
         </div>
-      </div>
+      </section>
 
-      <div style="margin-top: 12px;">
-        <h3>Saved</h3>
-        <ul>
-          <li v-for="s in summaries" :key="s.id" style="margin-bottom: 10px; border:1px solid #eee; padding:10px;">
-            <div style="display:flex; justify-content: space-between; align-items:center; gap: 8px;">
-              <div style="font-weight:700;">
-                {{ s.scope }} <span v-if="s.chapter !== null">#{{ s.chapter }}</span>
-                <span v-if="selectedSummaryId === s.id" style="opacity:.7;">（編集中）</span>
-              </div>
-
-              <div style="display:flex; gap: 8px;">
-                <button @click="editSummary(s)">Edit</button>
-                <button @click="deleteSummary(s)">Delete</button>
-              </div>
+      <section class="card">
+        <div class="section-heading">Reading Sessions</div>
+        <div class="form-grid">
+          <div class="grid two-col">
+            <label class="field">
+              <span>Date</span>
+              <input type="date" v-model="sessionDate" />
+            </label>
+            <label class="field">
+              <span>Minutes</span>
+              <input type="number" v-model.number="sessionMinutes" min="1" />
+            </label>
+            <label class="field">
+              <span>Pages read (optional)</span>
+              <input
+                type="number"
+                :value="sessionPagesRead ?? ''"
+                @input="(e:any)=> sessionPagesRead = e.target.value === '' ? null : Number(e.target.value)"
+                min="0"
+              />
+            </label>
+            <label class="field">
+              <span>Memo (optional)</span>
+              <input v-model="sessionMemo" placeholder="メモを追加" />
+            </label>
+          </div>
+          <button class="stretch" @click="addSession">Add Session</button>
+        </div>
+        <ul class="list-reset session-list">
+          <li v-for="s in sessions" :key="s.id" class="session-item">
+            <div>
+              <strong>{{ s.sessionDate }}</strong>
+              <p class="muted">{{ s.minutes }} min<span v-if="s.pagesRead !== null"> / {{ s.pagesRead }} pages</span></p>
             </div>
 
-            <pre style="white-space: pre-wrap; background:#f7f7f7; padding:8px; margin-top: 8px;">{{ s.contentMd }}</pre>
-          </li>
+<p class="muted" v-if="s.memo">{{ s.memo }}</p>          </li>
         </ul>
-      </div>
+      </section>
 
-      <button @click="downloadPdf">Export PDF</button>
+      <section class="card">
+        <div class="section-heading">Summaries</div>
+        <div class="form-grid">
+          <div class="grid two-col">
+            <label class="field">
+              <span>Scope</span>
+              <select v-model="summaryScope">
+                <option value="CHAPTER">CHAPTER</option>
+                <option value="BOOK">BOOK</option>
+              </select>
+            </label>
+            <label v-if="summaryScope === 'CHAPTER'" class="field">
+              <span>Chapter</span>
+              <input type="number" v-model.number="summaryChapter" min="1" />
+            </label>
+          </div>
+          <label class="field">
+            <span>Content (Markdown)</span>
+            <textarea v-model="summaryContent" rows="8" placeholder="Write summary in Markdown"></textarea>
+          </label>
+          <div class="action-row">
+            <button @click="saveSummary">Save Summary</button>
+            <button type="button" class="btn-ghost" @click="clearSummaryForm">Clear</button>
+          </div>
+        </div>
 
-    </section>
-  </main>
+        <div class="saved">
+          <div class="section-heading">Saved</div>
+          <ul class="list-reset saved-list">
+            <li v-for="s in summaries" :key="s.id" class="saved-item">
+              <div>
+                <div class="title-row">
+                  <div>
+                    <span class="badge" :class="statusClass(s.scope === 'BOOK' ? 'DONE' : 'READING')">
+                      {{ s.scope }}<span v-if="s.chapter !== null"> #{{ s.chapter }}</span>
+                    </span>
+                    <span v-if="selectedSummaryId === s.id" class="muted">（編集中）</span>
+                  </div>
+                  <div class="actions">
+                    <button class="btn-ghost" @click="editSummary(s)">Edit</button>
+                    <button class="btn-ghost" @click="deleteSummary(s)">Delete</button>
+                  </div>
+                </div>
+                <pre class="summary-content">{{ s.contentMd }}</pre>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <button class="stretch" @click="downloadPdf">Export PDF</button>
+      </section>
+    </template>  </main>
 </template>
+
+<style scoped>
+.back {
+  margin-bottom: 12px;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.info {
+  margin-top: 6px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.grid.two-col {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stretch {
+  width: fit-content;
+}
+
+.session-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.saved {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.saved-list {
+  display: grid;
+  gap: 12px;
+}
+
+.saved-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-content {
+  white-space: pre-wrap;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  margin-top: 8px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.error {
+  color: #dc2626;
+  font-weight: 700;
+}
+</style>

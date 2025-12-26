@@ -11,7 +11,8 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: "/login", component: Login },
-    { path: "/register", component: Register },    { path: "/books", component: Books },
+    { path: "/register", component: Register },
+    { path: "/books", component: Books },
     { path: "/books/:id", component: BookDetail },
     { path: "/dashboard", component: Dashboard },
     { path: "/:pathMatch(.*)*", redirect: "/books" },
