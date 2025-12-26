@@ -35,6 +35,7 @@ const route = useRoute();
 const id = computed(() => Number(route.params.id));
 
 const book = ref<Book | null>(null);
+const title = ref("");
 const status = ref("UNREAD");
 const totalPages = ref<number | null>(null);
 const currentPage = ref<number>(0);
@@ -55,6 +56,7 @@ async function load() {
   const res = await api.get(`/api/books/${id.value}`);
   book.value = res.data;
 
+  title.value = res.data.title ?? "";
   status.value = res.data.status ?? "UNREAD";
   totalPages.value = res.data.totalPages ?? null;
   currentPage.value = res.data.currentPage ?? 0;
@@ -63,8 +65,14 @@ async function load() {
 async function save() {
   error.value = null;
   saving.value = true;
+  if (!title.value.trim()) {
+    error.value = "タイトルを入力してください";
+    saving.value = false;
+    return;
+  }
   try {
     await api.patch(`/api/books/${id.value}`, {
+      title: title.value.trim(),
       status: status.value,
       currentPage: currentPage.value,
       totalPages: totalPages.value,
@@ -72,6 +80,22 @@ async function save() {
     await load();
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? "更新に失敗しました";
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function deleteBook() {
+  const ok = confirm("この本を削除しますか？");
+  if (!ok) return;
+
+  error.value = null;
+  saving.value = true;
+  try {
+    await api.delete(`/api/books/${id.value}`);
+    back();
+  } catch (e: any) {
+    error.value = e?.response?.data?.message ?? "削除に失敗しました";
   } finally {
     saving.value = false;
   }
@@ -212,14 +236,18 @@ onMounted(async () => {
       <section class="card hero">
         <div>
           <p class="eyebrow">Book detail</p>
-          <h1>{{ book.title }}</h1>
-          <p class="muted info">{{ book.author || "-" }} / {{ book.language || "-" }} / {{ book.level || "-" }}</p>
+          <h1>{{ title }}</h1>
+          <!-- <p class="muted info">{{ book.author || "-" }} / {{ book.language || "-" }} / {{ book.level || "-" }}</p> -->
         </div>
         <div class="badge" :class="statusClass(book.status)">{{ book.status }}</div>
       </section>
 
       <section class="card form-grid">
         <div class="section-heading">現在のステータス</div>
+          <label class="field">
+            <span>Title</span>
+            <input v-model="title" placeholder="Book title" />
+          </label>
         <div class="grid two-col">
           <label class="field">
             <span>Status</span>
@@ -241,11 +269,13 @@ onMounted(async () => {
           <label class="field">
             <span>Current page</span>
             <input type="number" v-model.number="currentPage" min="0" />
-          </label>        </div>
+          </label>
+        </div>
         <div class="action-row">
           <button @click="save" :disabled="saving">
             {{ saving ? "Saving..." : "Save" }}
           </button>
+          <button class="btn-ghost danger" type="button" @click="deleteBook" :disabled="saving">Delete book</button>
           <p v-if="error" class="error">{{ error }}</p>
         </div>
       </section>
@@ -441,6 +471,11 @@ onMounted(async () => {
   padding: 10px;
   margin-top: 8px;
   font-family: "Inter", system-ui, sans-serif;
+}
+
+.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
 }
 
 .error {

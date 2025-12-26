@@ -10,6 +10,9 @@ const router = useRouter();
 const title = ref("");
 const books = ref<Book[]>([]);
 const error = ref<string | null>(null);
+const editError = ref<string | null>(null);
+const editingId = ref<number | null>(null);
+const editingTitle = ref("");
 
 function statusClass(status: string) {
   if (status === "READING") return "blue";
@@ -32,6 +35,49 @@ async function createBook() {
   await api.post("/api/books", { title: title.value, status: "UNREAD" });
   title.value = "";
   await load();
+}
+
+function startEdit(b: Book) {
+  editingId.value = b.id;
+  editingTitle.value = b.title;
+  editError.value = null;
+}
+
+function cancelEdit() {
+  editingId.value = null;
+  editingTitle.value = "";
+  editError.value = null;
+}
+
+async function saveEdit() {
+  if (editingId.value === null) return;
+  editError.value = null;
+  if (!editingTitle.value.trim()) {
+    editError.value = "タイトルを入力してください";
+    return;
+  }
+
+  try {
+    await api.patch(`/api/books/${editingId.value}`, { title: editingTitle.value.trim() });
+    cancelEdit();
+    await load();
+  } catch (e: any) {
+    editError.value = e?.response?.data?.message ?? "名前の更新に失敗しました";
+  }
+}
+
+async function deleteBook(id: number) {
+  const ok = confirm("この本を削除しますか？");
+  if (!ok) return;
+
+  editError.value = null;
+  try {
+    await api.delete(`/api/books/${id}`);
+    if (editingId.value === id) cancelEdit();
+    await load();
+  } catch (e: any) {
+    editError.value = e?.response?.data?.message ?? "削除に失敗しました";
+  }
 }
 
 function goDashboard() {
@@ -71,13 +117,32 @@ onMounted(load);
 
     <section class="list-section">
       <div class="section-heading">Your books</div>
+      <p v-if="editError" class="error">{{ editError }}</p>
       <ul class="list-reset book-list">
         <li v-for="b in books" :key="b.id" class="card book-item">
           <div class="book-main">
-            <RouterLink :to="`/books/${b.id}`" class="title">{{ b.title }}</RouterLink>
-            <p class="muted">ID: {{ b.id }}</p>
+            <template v-if="editingId === b.id">
+              <input v-model="editingTitle" />
+              <!-- <p class="muted">ID: {{ b.id }}</p> -->
+            </template>
+            <template v-else>
+              <RouterLink :to="`/books/${b.id}`" class="title">{{ b.title }}</RouterLink>
+              <!-- <p class="muted">ID: {{ b.id }}</p> -->
+            </template>
           </div>
-          <span :class="['badge', statusClass(b.status)]">{{ b.status }}</span>
+          <div class="book-actions">
+            <span :class="['badge', statusClass(b.status)]">{{ b.status }}</span>
+            <div class="action-buttons">
+              <template v-if="editingId === b.id">
+                <button class="btn-ghost" @click="cancelEdit">Cancel</button>
+                <button @click="saveEdit">Save</button>
+              </template>
+              <template v-else>
+                <button class="btn-ghost" @click="startEdit(b)">Edit name</button>
+                <button class="btn-ghost danger" @click="deleteBook(b.id)">Delete</button>
+              </template>
+            </div>
+          </div>
         </li>
       </ul>
     </section>
@@ -127,6 +192,17 @@ onMounted(load);
   padding: 16px;
 }
 
+.book-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .book-main .title {
   font-weight: 800;
   color: #0f172a;
@@ -134,6 +210,11 @@ onMounted(load);
 
 .book-main .title:hover {
   text-decoration: underline;
+}
+
+.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
 }
 
 .error {
